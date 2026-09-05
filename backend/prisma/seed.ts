@@ -10,58 +10,55 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    (!process.env.SEED_ADMIN_PASSWORD || !process.env.SEED_CUSTOMER_PASSWORD)
-  ) {
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const customerEmail = process.env.SEED_CUSTOMER_EMAIL;
+  const customerPassword = process.env.SEED_CUSTOMER_PASSWORD;
+
+  if (!adminEmail || !adminPassword || !customerEmail || !customerPassword) {
     throw new Error(
-      'SEED_ADMIN_PASSWORD and SEED_CUSTOMER_PASSWORD are required in production',
+      'SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, SEED_CUSTOMER_EMAIL, and SEED_CUSTOMER_PASSWORD are required before seeding.',
     );
   }
+
   // --------------------------------------------------
   // USERS
   // --------------------------------------------------
 
-  const adminPassword = await bcrypt.hash(
-    process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!',
-    10,
-  );
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
 
   await prisma.user.upsert({
     where: {
-      email: process.env.SEED_ADMIN_EMAIL ?? 'admin@bloomstore.local',
+      email: adminEmail,
     },
     update: {
       name: 'Store Admin',
-      password: adminPassword,
+      password: hashedAdminPassword,
       role: 'ADMIN',
     },
     create: {
-      email: process.env.SEED_ADMIN_EMAIL ?? 'admin@bloomstore.local',
+      email: adminEmail,
       name: 'Store Admin',
-      password: adminPassword,
+      password: hashedAdminPassword,
       role: 'ADMIN',
     },
   });
 
-  const customerPassword = await bcrypt.hash(
-    process.env.SEED_CUSTOMER_PASSWORD ?? 'Customer123!',
-    10,
-  );
+  const hashedCustomerPassword = await bcrypt.hash(customerPassword, 10);
 
   await prisma.user.upsert({
     where: {
-      email: process.env.SEED_CUSTOMER_EMAIL ?? 'customer@bloomstore.local',
+      email: customerEmail,
     },
     update: {
       name: 'Demo Customer',
-      password: customerPassword,
+      password: hashedCustomerPassword,
       role: 'CUSTOMER',
     },
     create: {
-      email: process.env.SEED_CUSTOMER_EMAIL ?? 'customer@bloomstore.local',
+      email: customerEmail,
       name: 'Demo Customer',
-      password: customerPassword,
+      password: hashedCustomerPassword,
       role: 'CUSTOMER',
     },
   });
@@ -320,10 +317,10 @@ async function main() {
 
   console.log('Seeding finished successfully.');
   console.log('Admin:', {
-    email: process.env.SEED_ADMIN_EMAIL ?? 'admin@bloomstore.local',
+    email: adminEmail,
   });
   console.log('Customer:', {
-    email: process.env.SEED_CUSTOMER_EMAIL ?? 'customer@bloomstore.local',
+    email: customerEmail,
   });
 }
 
