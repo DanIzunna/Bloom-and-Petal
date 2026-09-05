@@ -113,27 +113,68 @@ export default function CartPage() {
   }
 
   if (confirmation) {
+    const orderReference = confirmation.slice(0, 8).toUpperCase();
+
     return (
-      <main className="mx-auto max-w-2xl px-5 py-20 text-center lg:py-28">
-        <p className="section-label">Order confirmed</p>
+      <main className="mx-auto flex w-full max-w-4xl items-center px-5 py-12 sm:py-16 lg:min-h-[calc(100vh-180px)] lg:py-16">
+        <section className="w-full text-center">
+          <div className="mx-auto max-w-2xl">
+            <p className="section-label">Order confirmed</p>
 
-        <h1 className="mt-3 font-sans text-4xl tracking-[-0.03em] text-[var(--foreground)] sm:text-5xl">
-          A little joy is on its way.
-        </h1>
+            <div className="mx-auto mt-6 flex size-14 items-center justify-center rounded-full border border-[var(--border)] bg-white shadow-[var(--shadow-soft)]">
+              <span
+                aria-hidden="true"
+                className="text-xl leading-none text-[var(--accent)]"
+              >
+                ✦
+              </span>
+            </div>
 
-        <p className="mt-6 text-sm text-[var(--muted-foreground)]">
-          Order ID:{" "}
-          <span className="font-mono text-xs text-[var(--foreground)]">
-            {confirmation}
-          </span>
-        </p>
+            <h1 className="mx-auto mt-6 max-w-xl font-sans text-4xl leading-[1.08] tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+              A little joy is on its way.
+            </h1>
 
-        <Link
-          href={`/orders/${confirmation}`}
-          className="mt-8 inline-flex rounded-[var(--radius-sm)] bg-[var(--primary)] px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--primary-dark)]"
-        >
-          View order
-        </Link>
+            <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-[var(--muted-foreground)] sm:text-base">
+              Thank you for your order. We&apos;ve received it and will take
+              care of the rest.
+            </p>
+
+            <div className="mx-auto mt-7 flex max-w-sm items-center justify-center gap-3 border-y border-[var(--border)] py-4">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                Order reference
+              </span>
+
+              <span className="font-mono text-xs font-semibold tracking-[0.08em] text-[var(--foreground)]">
+                #{orderReference}
+              </span>
+            </div>
+
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href={`/orders/${confirmation}`}
+                className="inline-flex min-w-40 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)] px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--primary-dark)]"
+              >
+                View order
+              </Link>
+
+              <Link
+                href="/products"
+                className="inline-flex min-w-40 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-[var(--primary)] transition hover:border-[var(--primary)] hover:bg-[var(--secondary)]"
+              >
+                Continue shopping
+              </Link>
+            </div>
+
+            <div
+              aria-hidden="true"
+              className="mx-auto mt-9 flex items-center justify-center gap-3"
+            >
+              <span className="h-px w-10 bg-[var(--border)]" />
+              <span className="text-sm text-[var(--accent)]">✦</span>
+              <span className="h-px w-10 bg-[var(--border)]" />
+            </div>
+          </div>
+        </section>
       </main>
     );
   }
