@@ -10,20 +10,39 @@ import RemoteImage from "./RemoteImage";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addToCart = useCart((state) => state.addToCart);
+  const cartItems = useCart((state) => state.items);
   const [added, setAdded] = useState(false);
-  const stockLabel =
-    product.stock < 1
-      ? "Sold out"
-      : product.stock <= 5
-        ? `${product.stock} left`
-        : "In stock";
+
+  const cartQuantity =
+    cartItems.find((item) => item.id === product.id)?.quantity ?? 0;
+
+  const remainingStock = Math.max(product.stock - cartQuantity, 0);
+
+  const isSoldOut = remainingStock < 1;
+  const isLowStock = remainingStock >= 1 && remainingStock <= 9;
+
+  const stockLabel = isSoldOut
+    ? "Sold out"
+    : isLowStock
+      ? `${remainingStock} left`
+      : "In stock";
+
   function handleAdd() {
-    if (product.stock > 0) addToCart(product);
+    if (isSoldOut) return;
+
+    addToCart(product);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
   }
+
   return (
-    <article className="group surface overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:border-[var(--primary)]">
+    <article
+      className={`group surface overflow-hidden transition duration-300 ${
+        isSoldOut
+          ? "opacity-65"
+          : "hover:-translate-y-0.5 hover:border-[var(--primary)]"
+      }`}
+    >
       <Link
         href={`/products/${product.slug}`}
         className="image-radius relative block aspect-[0.88] overflow-hidden bg-[var(--secondary)]"
@@ -33,14 +52,26 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           fill
           sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-          className="image-radius h-full w-full object-cover transition duration-700 group-hover:scale-105 motion-reduce:transition-none"
+          className={`image-radius h-full w-full object-cover transition duration-700 motion-reduce:transition-none ${
+            isSoldOut ? "grayscale" : "group-hover:scale-105"
+          }`}
         />
+
         {product.occasion && (
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
             {product.occasion}
           </span>
         )}
+
+        {isSoldOut && (
+          <span className="absolute inset-0 flex items-center justify-center bg-[#27332f]/10">
+            <span className="bg-white/90 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+              Sold out
+            </span>
+          </span>
+        )}
       </Link>
+
       <div className="flex min-h-[104px] items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
           <h3
@@ -49,30 +80,40 @@ export default function ProductCard({ product }: { product: Product }) {
           >
             {product.name}
           </h3>
+
           {product.category?.name && (
             <p className="mt-1 text-xs text-[var(--muted-foreground)]">
               {product.category.name}
             </p>
           )}
         </div>
+
         <div className="text-right">
           <p className="pt-1 text-sm font-semibold text-[var(--primary)]">
             ${Number(product.price).toFixed(2)}
           </p>
+
           <p
-            className={`mt-1 text-[0.68rem] font-bold uppercase tracking-[0.1em] ${product.stock < 1 ? "text-[var(--destructive)]" : product.stock <= 5 ? "text-[var(--warning)]" : "text-[var(--success)]"}`}
+            className={`mt-1 text-[0.68rem] font-bold uppercase tracking-[0.1em] ${
+              isSoldOut
+                ? "text-[var(--muted-foreground)]"
+                : isLowStock
+                  ? "text-[var(--warning)]"
+                  : "text-[var(--success)]"
+            }`}
           >
             {stockLabel}
           </p>
         </div>
       </div>
+
       <button
         onClick={handleAdd}
-        disabled={product.stock < 1}
+        disabled={isSoldOut}
         aria-label={`Add ${product.name} to cart`}
         className="mx-4 mb-4 mt-4 flex min-h-11 w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-[var(--primary)] py-3 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--primary-dark)] disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)]"
       >
-        {product.stock < 1 ? (
+        {isSoldOut ? (
           "Sold out"
         ) : added ? (
           <>
