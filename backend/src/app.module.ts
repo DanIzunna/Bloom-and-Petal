@@ -12,13 +12,21 @@ import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validate: (config: Record<string, string>) => {
-        const required = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
+        const required = [
+          'DATABASE_URL',
+          'JWT_SECRET',
+          'FRONTEND_URL',
+          'STRIPE_SECRET_KEY',
+          'STRIPE_WEBHOOK_SECRET',
+        ];
+
         const missing = required.filter((key) => !config[key]?.trim());
 
         if (missing.length > 0) {
@@ -50,6 +58,7 @@ import { UploadsModule } from './uploads/uploads.module';
     OrdersModule,
     CloudinaryModule,
     UploadsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -21,14 +21,24 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String    @id @default(uuid())
+  email     String    @unique
   password  String
   name      String
-  role      Role     @default(CUSTOMER)
-  createdAt DateTime @default(now())
+  role      Role      @default(CUSTOMER)
+  createdAt DateTime  @default(now())
   orders    Order[]
+  payments  Payment[]
+
+  @@index([createdAt])
 }
 
 model Category {
@@ -39,20 +49,21 @@ model Category {
 }
 
 model Product {
-  id              String      @id @default(uuid())
-  slug            String      @unique
-  name            String      @unique
-  description     String
-  price           Decimal     @db.Decimal(10, 2)
-  stock           Int
-  images          String[]    @db.Text
-  imageUrl        String?
-  imagePublicId   String?
+  id               String        @id @default(uuid())
+  slug             String        @unique
+  name             String        @unique
+  description      String
+  price            Decimal       @db.Decimal(10, 2)
+  stock            Int
+  images           String[]      @db.Text
+  imageUrl         String?
+  imagePublicId    String?
   careInstructions String?
-  occasion        String?
-  categoryId      String
-  category        Category    @relation(fields: [categoryId], references: [id])
-  orderItems      OrderItem[]
+  occasion         String?
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  orderItems       OrderItem[]
+  paymentItems     PaymentItem[]
 
   @@index([categoryId])
   @@index([price])
@@ -62,6 +73,8 @@ model Order {
   id              String      @id @default(uuid())
   userId          String
   user            User        @relation(fields: [userId], references: [id])
+  paymentId       String?     @unique
+  payment         Payment?    @relation(fields: [paymentId], references: [id])
   recipientName   String
   deliveryAddress String
   deliveryDate    DateTime
@@ -69,6 +82,10 @@ model Order {
   status          OrderStatus @default(PENDING)
   createdAt       DateTime    @default(now())
   orderItems      OrderItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
 }
 
 model OrderItem {
@@ -79,4 +96,43 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id])
+  status                PaymentStatus @default(PENDING)
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("usd")
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?       @unique
+  recipientName         String
+  deliveryAddress       String
+  deliveryDate          DateTime
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  paidAt                DateTime?
+  order                 Order?
+  items                 PaymentItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PaymentItem {
+  id        String  @id @default(uuid())
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  @@index([paymentId])
+  @@index([productId])
 }

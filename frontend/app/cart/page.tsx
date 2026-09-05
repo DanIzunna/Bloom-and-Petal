@@ -4,10 +4,20 @@ import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import { useCart } from "../../lib/store/useCart";
 import { api, imageFor } from "../../lib/api";
 import { useAuth } from "../../lib/store/useAuth";
 import RemoteImage from "../../components/RemoteImage";
+import StripePaymentForm from "../../components/StripePaymentForm";
+
+const stripePublishableKey =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+
+const stripePromise = stripePublishableKey
+  ? loadStripe(stripePublishableKey)
+  : null;
 
 export default function CartPage() {
   const {
@@ -25,7 +35,10 @@ export default function CartPage() {
   const [recipientName, setRecipientName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [confirmation, setConfirmation] = useState("");
+
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string | null>(null);
 
   const displaySubtotal = items.reduce(
     (total, item) => total + Number(item.price) * item.quantity,
@@ -42,6 +55,11 @@ export default function CartPage() {
 
     if (!token) {
       router.push("/auth");
+      return;
+    }
+
+    if (!stripePublishableKey) {
+      setError("Payment is temporarily unavailable. Please try again later.");
       return;
     }
 
@@ -66,7 +84,7 @@ export default function CartPage() {
     setBusy(true);
 
     try {
-      const result = await api.createOrder(
+      const result = await api.createPaymentIntent(
         {
           recipientName: recipientName.trim(),
           deliveryAddress: address.trim(),
@@ -79,13 +97,31 @@ export default function CartPage() {
         token,
       );
 
-      setConfirmation(result.data.id);
-      useCart.getState().clearCart();
+      setPaymentId(result.data.paymentId);
+      setClientSecret(result.data.clientSecret);
+      setPaymentAmount(result.data.amount);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to place your order.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Unable to start payment. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
+  }
+
+  function resetPayment() {
+    if (busy) return;
+
+    setPaymentId(null);
+    setClientSecret(null);
+    setPaymentAmount(null);
+    setError("");
+  }
+
+  function handlePaymentBusyChange(paymentBusy: boolean) {
+    setBusy(paymentBusy);
   }
 
   if (hydrated && user?.role === "ADMIN") {
@@ -112,78 +148,12 @@ export default function CartPage() {
     );
   }
 
-  if (confirmation) {
-    const orderReference = confirmation.slice(0, 8).toUpperCase();
-
-    return (
-      <main className="mx-auto flex w-full max-w-4xl items-center px-5 py-12 sm:py-16 lg:min-h-[calc(100vh-180px)] lg:py-16">
-        <section className="w-full text-center">
-          <div className="mx-auto max-w-2xl">
-            <p className="section-label">Order confirmed</p>
-
-            <div className="mx-auto mt-6 flex size-14 items-center justify-center rounded-full border border-[var(--border)] bg-white shadow-[var(--shadow-soft)]">
-              <span
-                aria-hidden="true"
-                className="text-xl leading-none text-[var(--accent)]"
-              >
-                ✦
-              </span>
-            </div>
-
-            <h1 className="mx-auto mt-6 max-w-xl font-sans text-4xl leading-[1.08] tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
-              A little joy is on its way.
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-md text-sm leading-6 text-[var(--muted-foreground)] sm:text-base">
-              Thank you for your order. We&apos;ve received it and will take
-              care of the rest.
-            </p>
-
-            <div className="mx-auto mt-7 flex max-w-sm items-center justify-center gap-3 border-y border-[var(--border)] py-4">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
-                Order reference
-              </span>
-
-              <span className="font-mono text-xs font-semibold tracking-[0.08em] text-[var(--foreground)]">
-                #{orderReference}
-              </span>
-            </div>
-
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href={`/orders/${confirmation}`}
-                className="inline-flex min-w-40 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)] px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--primary-dark)]"
-              >
-                View order
-              </Link>
-
-              <Link
-                href="/products"
-                className="inline-flex min-w-40 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-[var(--primary)] transition hover:border-[var(--primary)] hover:bg-[var(--secondary)]"
-              >
-                Continue shopping
-              </Link>
-            </div>
-
-            <div
-              aria-hidden="true"
-              className="mx-auto mt-9 flex items-center justify-center gap-3"
-            >
-              <span className="h-px w-10 bg-[var(--border)]" />
-              <span className="text-sm text-[var(--accent)]">✦</span>
-              <span className="h-px w-10 bg-[var(--border)]" />
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:py-10 lg:px-10 lg:py-12">
       <header className="mb-8 flex items-end justify-between border-b border-[var(--border)] pb-6">
         <div>
           <p className="section-label">Your little garden</p>
+
           <h1 className="mt-2 font-sans text-3xl font-semibold tracking-[-0.03em] text-[var(--foreground)] sm:text-4xl">
             Shopping bag
           </h1>
@@ -264,7 +234,8 @@ export default function CartPage() {
                         type="button"
                         onClick={() => removeFromCart(item.id)}
                         aria-label={`Remove ${item.name}`}
-                        className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--destructive)]"
+                        disabled={busy}
+                        className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--destructive)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         <Trash2 size={16} strokeWidth={1.6} />
                       </button>
@@ -278,7 +249,8 @@ export default function CartPage() {
                             updateQuantity(item.id, item.quantity - 1)
                           }
                           aria-label={`Decrease ${item.name} quantity`}
-                          className="grid size-9 place-items-center text-[var(--muted-foreground)] transition hover:text-[var(--primary)]"
+                          disabled={busy}
+                          className="grid size-9 place-items-center text-[var(--muted-foreground)] transition hover:text-[var(--primary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           <Minus size={13} />
                         </button>
@@ -293,7 +265,8 @@ export default function CartPage() {
                             updateQuantity(item.id, item.quantity + 1)
                           }
                           aria-label={`Increase ${item.name} quantity`}
-                          className="grid size-9 place-items-center text-[var(--muted-foreground)] transition hover:text-[var(--primary)]"
+                          disabled={busy}
+                          className="grid size-9 place-items-center text-[var(--muted-foreground)] transition hover:text-[var(--primary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           <Plus size={13} />
                         </button>
@@ -319,81 +292,156 @@ export default function CartPage() {
 
           <aside className="h-fit rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-7 lg:sticky lg:top-24">
             <div className="border-b border-[var(--border)] pb-5">
-              <p className="section-label">Checkout</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="section-label">
+                    {clientSecret ? "Secure payment" : "Checkout"}
+                  </p>
 
-              <h2 className="mt-2 font-sans text-2xl text-[var(--foreground)]">
-                Delivery details
-              </h2>
+                  <h2 className="mt-2 font-sans text-2xl text-[var(--foreground)]">
+                    {clientSecret ? "Payment details" : "Delivery details"}
+                  </h2>
 
-              <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                Tell us where and when to leave a little joy.
-              </p>
-            </div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                    {clientSecret
+                      ? "Complete your payment securely without leaving Bloom & Petal."
+                      : "Tell us where and when to leave a little joy."}
+                  </p>
+                </div>
 
-            <div className="space-y-6 pt-6">
-              <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
-                Recipient name
-                <input
-                  value={recipientName}
-                  onChange={(event) => setRecipientName(event.target.value)}
-                  placeholder="Who is receiving the flowers?"
-                  className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)]"
-                />
-              </label>
-
-              <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
-                Delivery address
-                <input
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                  placeholder="Street, city, postal code"
-                  className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)]"
-                />
-              </label>
-
-              <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
-                Delivery date
-                <input
-                  type="date"
-                  value={deliveryDate}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(event) => setDeliveryDate(event.target.value)}
-                  className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)]"
-                />
-              </label>
-            </div>
-
-            <div className="mt-7 space-y-3 border-t border-[var(--border)] pt-5 text-sm">
-              <div className="flex justify-between text-[var(--muted-foreground)]">
-                <span>Subtotal</span>
-                <span>${displaySubtotal.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between text-[var(--muted-foreground)]">
-                <span>Delivery</span>
-                <span>$0.00</span>
-              </div>
-
-              <div className="flex justify-between border-t border-[var(--border)] pt-4 text-base font-bold text-[var(--foreground)]">
-                <span>Total</span>
-                <span>${displaySubtotal.toFixed(2)}</span>
+                {clientSecret && (
+                  <button
+                    type="button"
+                    onClick={resetPayment}
+                    disabled={busy}
+                    className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--primary)] transition hover:text-[var(--accent)] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Change
+                  </button>
+                )}
               </div>
             </div>
 
-            {error && (
-              <p className="mt-5 rounded-[var(--radius-sm)] bg-[#fff0f0] px-3 py-3 text-sm leading-5 text-[var(--destructive)]">
-                {error}
-              </p>
-            )}
+            {!clientSecret ? (
+              <>
+                <div className="space-y-6 pt-6">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
+                    Recipient name
+                    <input
+                      value={recipientName}
+                      onChange={(event) => setRecipientName(event.target.value)}
+                      placeholder="Who is receiving the flowers?"
+                      disabled={busy}
+                      className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)] disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </label>
 
-            <button
-              type="button"
-              onClick={checkout}
-              disabled={busy}
-              className="mt-6 w-full rounded-[var(--radius-sm)] bg-[var(--primary)] py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? "Placing order..." : "Place order"}
-            </button>
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
+                    Delivery address
+                    <input
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                      placeholder="Street, city, postal code"
+                      disabled={busy}
+                      className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)] disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </label>
+
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
+                    Delivery date
+                    <input
+                      type="date"
+                      value={deliveryDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(event) => setDeliveryDate(event.target.value)}
+                      disabled={busy}
+                      className="mt-2 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgb(47_93_80_/_0.12)] disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-7 space-y-3 border-t border-[var(--border)] pt-5 text-sm">
+                  <div className="flex justify-between text-[var(--muted-foreground)]">
+                    <span>Subtotal</span>
+                    <span>${displaySubtotal.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-[var(--muted-foreground)]">
+                    <span>Delivery</span>
+                    <span>$0.00</span>
+                  </div>
+
+                  <div className="flex justify-between border-t border-[var(--border)] pt-4 text-base font-bold text-[var(--foreground)]">
+                    <span>Total</span>
+                    <span>${displaySubtotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="mt-5 rounded-[var(--radius-sm)] bg-[#fff0f0] px-3 py-3 text-sm leading-5 text-[var(--destructive)]">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={checkout}
+                  disabled={busy}
+                  className="mt-6 w-full rounded-[var(--radius-sm)] bg-[var(--primary)] py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? "Preparing payment..." : "Proceed to payment"}
+                </button>
+
+                <p className="mt-3 text-center text-[11px] leading-5 text-[var(--muted-foreground)]">
+                  Your payment will be securely processed by Stripe.
+                </p>
+              </>
+            ) : paymentId && paymentAmount ? (
+              <>
+                {error && (
+                  <p className="mt-5 rounded-[var(--radius-sm)] bg-[#fff0f0] px-3 py-3 text-sm leading-5 text-[var(--destructive)]">
+                    {error}
+                  </p>
+                )}
+
+                <div className="pt-6">
+                  {stripePromise ? (
+                    <Elements
+                      key={clientSecret}
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret,
+                        appearance: {
+                          theme: "stripe",
+                          variables: {
+                            colorPrimary: "#2f5d50",
+                            colorBackground: "#ffffff",
+                            colorText: "#1f2a24",
+                            colorDanger: "#b42318",
+                            fontFamily: "Poppins, system-ui, sans-serif",
+                            borderRadius: "10px",
+                            spacingUnit: "4px",
+                          },
+                        },
+                        loader: "auto",
+                      }}
+                    >
+                      <StripePaymentForm
+                        paymentId={paymentId}
+                        amount={paymentAmount}
+                        onError={setError}
+                        onBusyChange={handlePaymentBusyChange}
+                      />
+                    </Elements>
+                  ) : (
+                    <div className="rounded-[var(--radius-sm)] bg-[#fff0f0] px-4 py-4 text-sm leading-5 text-[var(--destructive)]">
+                      Payment is temporarily unavailable. Please try again
+                      later.
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
           </aside>
         </div>
       )}

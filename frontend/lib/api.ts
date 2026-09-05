@@ -26,7 +26,12 @@ export type Pagination = {
   total: number;
   totalPages: number;
 };
-export type ProductList = { items: Product[]; pagination: Pagination };
+
+export type ProductList = {
+  items: Product[];
+  pagination: Pagination;
+};
+
 export type ProductInput = {
   name: string;
   description: string;
@@ -39,6 +44,7 @@ export type ProductInput = {
   occasion?: string;
   categoryId: string;
 };
+
 export type User = {
   id: string;
   name: string;
@@ -46,13 +52,23 @@ export type User = {
   role: "CUSTOMER" | "ADMIN";
   createdAt?: string;
 };
-export type AuthResponse = { accessToken: string; user: User };
+
+export type AuthResponse = {
+  accessToken: string;
+  user: User;
+};
+
 export type OrderItem = {
   id: string;
   quantity: number;
   price: string;
-  product: { id: string; name: string; images: string[] };
+  product: {
+    id: string;
+    name: string;
+    images: string[];
+  };
 };
+
 export type Order = {
   id: string;
   recipientName: string;
@@ -64,10 +80,48 @@ export type Order = {
   orderItems: OrderItem[];
 };
 
+export type CheckoutResponse = {
+  success: true;
+  data: {
+    checkoutUrl: string;
+    sessionId: string;
+  };
+};
+
+export type PaymentSessionResponse = {
+  success: true;
+  data: {
+    status: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+    orderId: string | null;
+    amount: string;
+    currency: string;
+  };
+};
+export type PaymentIntentResponse = {
+  success: true;
+  data: {
+    paymentId: string;
+    clientSecret: string;
+    amount: string;
+    currency: string;
+  };
+};
+
+export type PaymentStatusResponse = {
+  success: true;
+  data: {
+    status: "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+    orderId: string | null;
+    amount: string;
+    currency: string;
+  };
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export class ApiError extends Error {
   status: number;
+
   constructor(status: number, message: string) {
     super(message);
     this.status = status;
@@ -88,8 +142,10 @@ function messageFor(status: number, fallback?: string) {
 
 function paginatedQuery(query: string) {
   const params = new URLSearchParams(query);
+
   if (!params.get("page")) params.set("page", "1");
   if (!params.get("limit")) params.set("limit", "12");
+
   return params.toString();
 }
 
@@ -108,12 +164,16 @@ export async function apiRequest<T>(
     },
     signal,
   });
+
   const body = await response.json().catch(() => null);
-  if (!response.ok)
+
+  if (!response.ok) {
     throw new ApiError(
       response.status,
       messageFor(response.status, body?.message),
     );
+  }
+
   return body as T;
 }
 
@@ -126,99 +186,235 @@ export const api = {
       signal,
     );
   },
+
   product: (id: string) => apiRequest<Product>(`/products/${id}`),
+
   categories: () => apiRequest<Category[]>("/categories"),
+
   createCategory: (data: { name: string; slug: string }, token: string) =>
     apiRequest<Category>(
       "/categories",
-      { method: "POST", body: JSON.stringify(data) },
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
       token,
     ),
+
   register: (data: { name: string; email: string; password: string }) =>
     apiRequest<{ success: true; data: AuthResponse }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
   login: async (data: { email: string; password: string }) => {
     try {
-      return await apiRequest<{ success: true; data: AuthResponse }>(
-        "/auth/login",
-        { method: "POST", body: JSON.stringify(data) },
-      );
+      return await apiRequest<{
+        success: true;
+        data: AuthResponse;
+      }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         throw new ApiError(401, "Invalid email or password.");
       }
+
       throw error;
     }
   },
+
   me: (token: string) =>
-    apiRequest<{ success: true; data: User }>("/users/me", {}, token),
+    apiRequest<{
+      success: true;
+      data: User;
+    }>("/users/me", {}, token),
+
   createOrder: (
     data: {
       recipientName: string;
       deliveryAddress: string;
       deliveryDate: string;
-      items: { productId: string; quantity: number }[];
+      items: {
+        productId: string;
+        quantity: number;
+      }[];
     },
     token: string,
   ) =>
-    apiRequest<{ success: true; data: Order }>(
+    apiRequest<{
+      success: true;
+      data: Order;
+    }>(
       "/orders",
-      { method: "POST", body: JSON.stringify(data) },
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
       token,
     ),
+  createPaymentIntent: (
+    data: {
+      recipientName: string;
+      deliveryAddress: string;
+      deliveryDate: string;
+      items: {
+        productId: string;
+        quantity: number;
+      }[];
+    },
+    token: string,
+  ) =>
+    apiRequest<PaymentIntentResponse>(
+      "/payments/intent",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+      token,
+    ),
+
+  getPaymentStatus: (paymentId: string, token: string) =>
+    apiRequest<PaymentStatusResponse>(
+      `/payments/status/${encodeURIComponent(paymentId)}`,
+      {
+        method: "GET",
+      },
+      token,
+    ),
+
+  createCheckout: (
+    data: {
+      recipientName: string;
+      deliveryAddress: string;
+      deliveryDate: string;
+      items: {
+        productId: string;
+        quantity: number;
+      }[];
+    },
+    token: string,
+  ) =>
+    apiRequest<CheckoutResponse>(
+      "/payments/checkout",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+      token,
+    ),
+
+  getPaymentSession: (sessionId: string, token: string) =>
+    apiRequest<PaymentSessionResponse>(
+      `/payments/session/${encodeURIComponent(sessionId)}`,
+      {
+        method: "GET",
+      },
+      token,
+    ),
+
   orders: (token: string, query = "") =>
     apiRequest<{
       success: true;
-      data: { items: Order[]; pagination: Pagination };
+      data: {
+        items: Order[];
+        pagination: Pagination;
+      };
     }>(`/orders?${paginatedQuery(query)}`, {}, token),
+
   order: (id: string, token: string) =>
-    apiRequest<{ success: true; data: Order }>(`/orders/${id}`, {}, token),
+    apiRequest<{
+      success: true;
+      data: Order;
+    }>(`/orders/${id}`, {}, token),
+
   createProduct: (data: ProductInput, token: string) =>
     apiRequest<Product>(
       "/products",
-      { method: "POST", body: JSON.stringify(data) },
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
       token,
     ),
+
   updateProduct: (id: string, data: Partial<ProductInput>, token: string) =>
     apiRequest<Product>(
       `/products/${id}`,
-      { method: "PATCH", body: JSON.stringify(data) },
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
       token,
     ),
+
   deleteProduct: (id: string, token: string) =>
-    apiRequest<Product>(`/products/${id}`, { method: "DELETE" }, token),
+    apiRequest<Product>(
+      `/products/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    ),
+
   adminOrders: (token: string, query = "") =>
     apiRequest<{
       success: true;
-      data: { items: Order[]; pagination: Pagination };
+      data: {
+        items: Order[];
+        pagination: Pagination;
+      };
     }>(`/admin/orders?${paginatedQuery(query)}`, {}, token),
+
   updateOrderStatus: (id: string, status: Order["status"], token: string) =>
-    apiRequest<{ success: true; data: Order }>(
+    apiRequest<{
+      success: true;
+      data: Order;
+    }>(
       `/admin/orders/${id}/status`,
-      { method: "PATCH", body: JSON.stringify({ status }) },
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      },
       token,
     ),
+
   uploadProductImage: async (
     file: File,
     token: string,
-  ): Promise<{ success: true; data: { url: string; publicId: string } }> => {
+  ): Promise<{
+    success: true;
+    data: {
+      url: string;
+      publicId: string;
+    };
+  }> => {
     const formData = new FormData();
+
     formData.append("image", file);
+
     const response = await fetch(`${API_URL}/uploads/product-image`, {
       method: "POST",
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {}),
       },
       body: formData,
     });
+
     const body = await response.json().catch(() => null);
-    if (!response.ok)
+
+    if (!response.ok) {
       throw new ApiError(
         response.status,
         messageFor(response.status, body?.message),
       );
+    }
+
     return body;
   },
 };
