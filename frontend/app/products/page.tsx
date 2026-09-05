@@ -35,26 +35,32 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+
   useEffect(() => {
     api
       .categories()
       .then(setCategories)
       .catch(() => setError("Unable to load categories."));
   }, []);
+
   useEffect(() => {
     let active = true;
+
     const query = new URLSearchParams({
       page: String(page),
       limit: "12",
       sortBy,
       sortOrder,
     });
+
     if (search.trim()) query.set("search", search.trim());
     if (category) query.set("category", category);
+
     api
       .products(query.toString())
       .then((result) => {
         if (!active) return;
+
         setError("");
         setProducts(
           result.items.filter((item) => Number(item.price) <= maxPrice),
@@ -69,32 +75,50 @@ export default function ProductsPage() {
       .finally(() => {
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
   }, [page, category, search, maxPrice, sortBy, sortOrder]);
+
   const filterCount = Number(Boolean(category)) + Number(maxPrice < 100);
+
   const pageNumbers = Array.from(
     { length: totalPages },
     (_, index) => index + 1,
   );
+
   const beginRequest = () => {
     setLoading(true);
     setError("");
   };
+
   const clearFilters = () => {
     beginRequest();
     setCategory("");
     setSearch("");
     setMaxPrice(100);
+    setSortBy("name");
+    setSortOrder("asc");
     setPage(1);
     setFiltersOpen(false);
     setError("");
   };
-  const filters = (
+
+  const selectCategory = (slug: string) => {
+    beginRequest();
+    setCategory(slug);
+    setPage(1);
+    setFiltersOpen(false);
+    setError("");
+  };
+
+  const filterControls = (
     <>
-      <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
-        Search
+      <label className="block min-w-0">
+        <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+          Search
+        </span>
         <Input
           value={search}
           onChange={(e) => {
@@ -104,40 +128,50 @@ export default function ProductsPage() {
             setError("");
           }}
           placeholder="Search blooms"
-          className="mt-2"
         />
       </label>
-      <div className="space-y-1">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
+
+      <div>
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           Category
         </p>
-        <button
-          onClick={() => {
-            beginRequest();
-            clearFilters();
-          }}
-          className={`block w-full rounded px-3 py-2 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${!category ? "bg-[var(--primary)] text-white" : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--primary)]"}`}
-        >
-          All flowers
-        </button>
-        {categories.map((item) => (
+
+        <div className="flex flex-wrap gap-2">
           <button
-            key={item.id}
-            onClick={() => {
-              beginRequest();
-              setCategory(item.slug);
-              setPage(1);
-              setFiltersOpen(false);
-              setError("");
-            }}
-            className={`block w-full rounded px-3 py-2 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${category === item.slug ? "bg-[var(--primary)] text-white" : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--primary)]"}`}
+            type="button"
+            onClick={() => selectCategory("")}
+            className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+              !category
+                ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+            }`}
           >
-            {item.name}
+            All
           </button>
-        ))}
+
+          {categories.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              onClick={() => selectCategory(item.slug)}
+              className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                category === item.slug
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                  : "border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              }`}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
       </div>
-      <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
-        Maximum price <span className="float-right">${maxPrice}</span>
+
+      <label className="block">
+        <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+          <span>Maximum price</span>
+          <span className="text-[var(--foreground)]">${maxPrice}</span>
+        </div>
+
         <input
           type="range"
           min="25"
@@ -149,11 +183,15 @@ export default function ProductsPage() {
             setMaxPrice(Number(e.target.value));
             setPage(1);
           }}
-          className="mt-4 w-full accent-[var(--primary)]"
+          className="mt-1 w-full accent-[var(--primary)]"
         />
       </label>
-      <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
-        Sort
+
+      <label className="block">
+        <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+          Sort
+        </span>
+
         <Select
           value={`${sortBy}:${sortOrder}`}
           onChange={(e) => {
@@ -164,7 +202,6 @@ export default function ProductsPage() {
             setPage(1);
             setError("");
           }}
-          className="mt-2"
         >
           <option value="name:asc">Name A–Z</option>
           <option value="name:desc">Name Z–A</option>
@@ -174,33 +211,41 @@ export default function ProductsPage() {
       </label>
     </>
   );
+
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10 lg:py-12">
-      <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[var(--border)] pb-6 md:flex-row md:items-end">
+    <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:py-10 lg:px-10 lg:py-12">
+      <header className="mb-7 flex flex-col gap-3 border-b border-[var(--border)] pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="section-label">The collection</p>
-          <h1 className="mt-2 font-sans text-3xl font-semibold text-[var(--foreground)] sm:text-4xl">
+          <h1 className="mt-2 font-sans text-3xl font-semibold tracking-[-0.02em] text-[var(--foreground)] sm:text-4xl">
             Flowers &amp; plants
           </h1>
         </div>
-        <p className="max-w-xs text-sm leading-6 text-[var(--muted-foreground)]">
+
+        <p className="max-w-sm text-sm leading-6 text-[var(--muted-foreground)]">
           Seasonal flowers, easy-care plants, and pieces that make a room feel
           more like home.
         </p>
-      </div>
-      <div className="mb-6 flex items-center justify-between lg:hidden">
+      </header>
+
+      {/* Mobile filter trigger */}
+      <div className="mb-5 flex items-center justify-between lg:hidden">
         <Button variant="secondary" onClick={() => setFiltersOpen(true)}>
-          <SlidersHorizontal size={16} /> Filters
+          <SlidersHorizontal size={16} />
+          Filters
           {filterCount > 0 && (
             <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[10px] text-white">
               {filterCount}
             </span>
           )}
         </Button>
-        <span className="text-sm text-[var(--muted-foreground)]">
+
+        <span className="text-xs text-[var(--muted-foreground)]">
           {loading ? "Loading..." : error ? "" : `${totalResults} blooms`}
         </span>
       </div>
+
+      {/* Mobile filter sheet */}
       {filtersOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/30 lg:hidden"
@@ -210,114 +255,245 @@ export default function ProductsPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Product filters"
-            className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[var(--radius-md)] bg-[var(--background)] p-6"
+            className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-[1.25rem] bg-[var(--background)] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="font-sans text-3xl">Filters</h2>
+            <div className="mb-7 flex items-center justify-between">
+              <div>
+                <p className="section-label">Refine</p>
+                <h2 className="mt-1 font-sans text-3xl text-[var(--foreground)]">
+                  Filters
+                </h2>
+              </div>
+
               <button
+                type="button"
                 onClick={() => setFiltersOpen(false)}
                 aria-label="Close filters"
-                className="grid size-10 place-items-center rounded-[var(--radius-sm)] border border-[var(--border)]"
+                className="grid size-10 place-items-center rounded-full border border-[var(--border)] bg-white"
               >
                 <X size={18} />
               </button>
             </div>
-            <div className="space-y-6">{filters}</div>
+
+            <div className="space-y-7">{filterControls}</div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-7 w-full border-t border-[var(--border)] pt-5 text-xs font-bold uppercase tracking-[0.15em] text-[var(--primary)]"
+            >
+              Clear all filters
+            </button>
           </aside>
         </div>
       )}
-      <div className="grid gap-8 lg:grid-cols-1">
-        <aside className="hidden items-end gap-5 border-b border-[var(--border)] pb-6 lg:flex [&>label]:flex-1 [&>label:first-child]:max-w-xs [&>label:nth-child(3)]:max-w-xs [&>label:nth-child(4)]:max-w-xs [&>div]:flex-[1.4] [&>div>div]:flex [&>div>div]:flex-wrap [&>div>div]:gap-1 [&>div>div>button]:w-auto [&>div>div>button]:px-3">
-          {filters}
-        </aside>
-        <section>
-          <div className="mb-6 hidden items-center justify-between text-sm text-[var(--muted-foreground)] lg:flex">
-            <span>
-              {loading
-                ? "Loading blooms..."
-                : error
-                  ? ""
-                  : `${totalResults} blooms to explore`}
+
+      {/* Desktop filter toolbar */}
+      <section className="hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-soft)] lg:block">
+        <div className="grid grid-cols-[minmax(210px,0.8fr)_minmax(0,1.8fr)_180px_190px] items-end gap-5">
+          <label className="block">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+              Search
             </span>
-            <span>Freshly arranged for you</span>
-          </div>
-          {error ? (
-            <div>
-              <ErrorState message={error} />
+            <Input
+              value={search}
+              onChange={(e) => {
+                beginRequest();
+                setSearch(e.target.value);
+                setPage(1);
+                setError("");
+              }}
+              placeholder="Search blooms"
+            />
+          </label>
+
+          <div className="min-w-0">
+            <p className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+              Category
+            </p>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
               <button
+                type="button"
+                onClick={() => selectCategory("")}
+                className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                  !category
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                    : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                }`}
+              >
+                All
+              </button>
+
+              {categories.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => selectCategory(item.slug)}
+                  className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                    category === item.slug
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="block">
+            <div className="mb-2 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+              <span>Max price</span>
+              <span className="text-[var(--foreground)]">${maxPrice}</span>
+            </div>
+
+            <input
+              type="range"
+              min="25"
+              max="100"
+              step="5"
+              value={maxPrice}
+              onChange={(e) => {
+                beginRequest();
+                setMaxPrice(Number(e.target.value));
+                setPage(1);
+              }}
+              className="mt-1 w-full accent-[var(--primary)]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+              Sort
+            </span>
+
+            <Select
+              value={`${sortBy}:${sortOrder}`}
+              onChange={(e) => {
+                beginRequest();
+                const [nextBy, nextOrder] = e.target.value.split(":");
+                setSortBy(nextBy);
+                setSortOrder(nextOrder);
+                setPage(1);
+                setError("");
+              }}
+            >
+              <option value="name:asc">Name A–Z</option>
+              <option value="name:desc">Name Z–A</option>
+              <option value="price:asc">Price low to high</option>
+              <option value="price:desc">Price high to low</option>
+            </Select>
+          </label>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {loading
+              ? "Loading blooms..."
+              : error
+                ? ""
+                : `${totalResults} blooms to explore`}
+          </p>
+
+          {(category || search || maxPrice < 100) && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--primary)] hover:text-[var(--accent)]"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-7">
+        {error ? (
+          <div>
+            <ErrorState message={error} />
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mx-auto mt-4 block text-xs font-bold uppercase tracking-widest text-[var(--primary)]"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : loading ? (
+          <LoadingState label="Gathering something beautiful..." />
+        ) : products.length ? (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                disabled={page <= 1}
+                aria-label="Previous page"
+                onClick={() => {
+                  beginRequest();
+                  setPage(page - 1);
+                }}
+              >
+                Previous
+              </Button>
+
+              {pageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  aria-label={`Go to page ${pageNumber}`}
+                  aria-current={pageNumber === page ? "page" : undefined}
+                  disabled={loading}
+                  onClick={() => {
+                    beginRequest();
+                    setPage(pageNumber);
+                  }}
+                  className={`grid size-10 place-items-center rounded-[var(--radius-sm)] border text-sm font-semibold transition focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                    pageNumber === page
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+
+              <Button
+                variant="ghost"
+                disabled={page >= totalPages}
+                aria-label="Next page"
+                onClick={() => {
+                  beginRequest();
+                  setPage(page + 1);
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          </>
+        ) : (
+          <EmptyState
+            title="Nothing in this range yet"
+            detail="Try a different category or price range."
+            action={
+              <button
+                type="button"
                 onClick={clearFilters}
-                className="mx-auto mt-4 block text-xs font-bold uppercase tracking-widest text-[var(--primary)]"
+                className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]"
               >
                 Clear filters
               </button>
-            </div>
-          ) : loading ? (
-            <LoadingState label="Gathering something beautiful..." />
-          ) : products.length ? (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-                <Button
-                  variant="ghost"
-                  disabled={page <= 1}
-                  aria-label="Previous page"
-                  onClick={() => {
-                    beginRequest();
-                    setPage(page - 1);
-                  }}
-                >
-                  Previous
-                </Button>
-                {pageNumbers.map((pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    type="button"
-                    aria-label={`Go to page ${pageNumber}`}
-                    aria-current={pageNumber === page ? "page" : undefined}
-                    disabled={loading}
-                    onClick={() => {
-                      beginRequest();
-                      setPage(pageNumber);
-                    }}
-                    className={`grid size-10 place-items-center rounded-[var(--radius-sm)] border text-sm font-semibold transition focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${pageNumber === page ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"}`}
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
-                <Button
-                  variant="ghost"
-                  disabled={page >= totalPages}
-                  aria-label="Next page"
-                  onClick={() => {
-                    beginRequest();
-                    setPage(page + 1);
-                  }}
-                >
-                  Next
-                </Button>
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              title="Nothing in this range yet"
-              detail="Try a different category or price range."
-              action={
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]"
-                >
-                  Clear filters
-                </button>
-              }
-            />
-          )}
-        </section>
-      </div>
+            }
+          />
+        )}
+      </section>
     </main>
   );
 }
