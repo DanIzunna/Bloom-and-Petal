@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -129,17 +133,33 @@ export class ProductsService {
   async remove(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      select: { ...productSelect, imagePublicId: true },
+      select: {
+        ...productSelect,
+        imagePublicId: true,
+        _count: {
+          select: {
+            orderItems: true,
+            paymentItems: true,
+          },
+        },
+      },
     });
-    if (!product) throw new NotFoundException('Product not found');
 
-    // Delete the product first
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (product._count.orderItems > 0 || product._count.paymentItems > 0) {
+      throw new ConflictException(
+        'This product cannot be deleted because it is associated with existing orders or payments.',
+      );
+    }
+
     const deleted = await this.prisma.product.delete({
       where: { id },
       select: productSelect,
     });
 
-    // Delete image only after successful database deletion
     if (product.imagePublicId) {
       await this.cloudinaryService.deleteImage(product.imagePublicId);
     }

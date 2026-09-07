@@ -136,7 +136,7 @@ function messageFor(status: number, fallback?: string) {
   if (status === 403) return "You do not have permission to do that.";
   if (status === 404) return "We could not find what you requested.";
   if (status === 409)
-    return "That already exists. Please use different details.";
+    return fallback || "That already exists. Please use different details.";
   if (status === 429) return "Too many requests. Please try again shortly.";
   return "Something went wrong. Please try again.";
 }
