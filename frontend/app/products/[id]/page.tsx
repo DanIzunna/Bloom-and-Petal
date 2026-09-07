@@ -8,6 +8,7 @@ import { api, imageFor, type Product } from "../../../lib/api";
 import { useCart } from "../../../lib/store/useCart";
 import RemoteImage from "../../../components/RemoteImage";
 import { Badge, Button } from "../../../components/ui";
+import NotFoundContent from "../../../components/NotFoundContent";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,12 +31,7 @@ export default function ProductDetailPage() {
     }
   }, [id]);
 
-  if (error)
-    return (
-      <main className="mx-auto max-w-7xl px-5 py-24 text-center text-[#b65e6d]">
-        {error}
-      </main>
-    );
+  if (error) return <NotFoundContent />;
 
   if (!product)
     return (
