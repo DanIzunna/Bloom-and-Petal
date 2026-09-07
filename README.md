@@ -14,66 +14,66 @@ Bloom & Petal provides a complete shopping experience for customers, backed by a
 
 ### Customer
 
-* Browse flowers and plants
-* Search and filter products
-* Filter products by category and maximum price
-* Sort products by supported criteria
-* View detailed product information
-* Add products to cart
-* Update cart quantities
-* Remove products from cart
-* Persistent shopping cart for authenticated customers
-* Guest shopping cart with automatic expiry
-* Merge guest cart into authenticated customer cart after login
-* Customer registration and login
-* JWT-based authentication
-* Secure checkout with Stripe
-* View personal order history
-* View individual order details
-* Track order status
-* Cancel eligible orders
-* Custom branded 404 experience
-* Responsive desktop and mobile interface
+- Browse flowers and plants
+- Search and filter products
+- Filter products by category and maximum price
+- Sort products by supported criteria
+- View detailed product information
+- Add products to cart
+- Update cart quantities
+- Remove products from cart
+- Persistent shopping cart for authenticated customers
+- Guest shopping cart with automatic expiry
+- Merge guest cart into authenticated customer cart after login
+- Customer registration and login
+- JWT-based authentication
+- Secure checkout with Stripe
+- View personal order history
+- View individual order details
+- Track order status
+- Cancel eligible orders
+- Custom branded 404 experience
+- Responsive desktop and mobile interface
 
 ### Administration
 
-* Dedicated admin interface
-* Admin authentication and authorization
-* Product management
-* Category management
-* Product image uploads through Cloudinary
-* Product image deletion
-* Inventory management
-* Order management
-* Order status updates
-* Dashboard metrics
-* Protected administrative API endpoints
+- Dedicated admin interface
+- Admin authentication and authorization
+- Product management
+- Category management
+- Product image uploads through Cloudinary
+- Product image deletion
+- Inventory management
+- Order management
+- Order status updates
+- Dashboard metrics
+- Protected administrative API endpoints
 
 ### Backend & Security
 
-* RESTful API built with NestJS
-* PostgreSQL database hosted on Neon
-* Prisma ORM with PostgreSQL adapter
-* JWT authentication
-* Password hashing with bcrypt
-* Role-based authorization
-* Server-side product and price validation
-* Server-side order total calculation
-* Atomic inventory updates
-* Transactional order processing
-* Stripe PaymentIntent integration
-* Stripe webhook handling
-* Payment and order state synchronization
-* Protected order ownership
-* Validated order status transitions
-* Global request validation
-* Rate limiting
-* Helmet security headers
-* Configurable CORS
-* Safe database exception handling
-* Environment-based configuration
-* Automated backend tests
-* GitHub Actions CI
+- RESTful API built with NestJS
+- PostgreSQL database hosted on Neon
+- Prisma ORM with PostgreSQL adapter
+- JWT authentication
+- Password hashing with bcrypt
+- Role-based authorization
+- Server-side product and price validation
+- Server-side order total calculation
+- Atomic inventory updates
+- Transactional order processing
+- Stripe PaymentIntent integration
+- Stripe webhook handling
+- Payment and order state synchronization
+- Protected order ownership
+- Validated order status transitions
+- Global request validation
+- Rate limiting
+- Helmet security headers
+- Configurable CORS
+- Safe database exception handling
+- Environment-based configuration
+- Automated backend tests
+- GitHub Actions CI
 
 ---
 
@@ -141,8 +141,8 @@ PENDING
 
 Terminal states are:
 
-* `DELIVERED`
-* `CANCELLED`
+- `DELIVERED`
+- `CANCELLED`
 
 Order status transitions are validated on the server.
 
@@ -176,9 +176,9 @@ Product images are managed through **Cloudinary** rather than being stored direc
 
 Supported formats include:
 
-* JPEG
-* PNG
-* WebP
+- JPEG
+- PNG
+- WebP
 
 Images are stored in the Bloom & Petal Cloudinary product folder and can be deleted when products are removed or their media is replaced.
 
@@ -188,37 +188,37 @@ Images are stored in the Bloom & Petal Cloudinary product folder and can be dele
 
 ### Frontend
 
-* **Next.js**
-* **React**
-* **TypeScript**
-* **Tailwind CSS**
-* **Zustand**
-* **Lucide React**
-* **Poppins**
+- **Next.js**
+- **React**
+- **TypeScript**
+- **Tailwind CSS**
+- **Zustand**
+- **Lucide React**
+- **Poppins**
 
 ### Backend
 
-* **NestJS**
-* **TypeScript**
-* **Prisma**
-* **PostgreSQL**
-* **JWT**
-* **bcrypt**
-* **Stripe**
-* **Cloudinary**
+- **NestJS**
+- **TypeScript**
+- **Prisma**
+- **PostgreSQL**
+- **JWT**
+- **bcrypt**
+- **Stripe**
+- **Cloudinary**
 
 ### Testing & CI
 
-* **Jest**
-* **GitHub Actions**
+- **Jest**
+- **GitHub Actions**
 
 ### Infrastructure
 
-* **Vercel** — frontend deployment
-* **Render** — backend deployment
-* **Neon** — PostgreSQL database
-* **Cloudinary** — product media
-* **Stripe** — payment processing
+- **Vercel** — frontend deployment
+- **Render** — backend deployment
+- **Neon** — PostgreSQL database
+- **Cloudinary** — product media
+- **Stripe** — payment processing
 
 ---
 
@@ -304,10 +304,10 @@ Bloom-and-Petal/
 
 Make sure you have the following installed:
 
-* Node.js 22+
-* npm
-* Git
-* A PostgreSQL database
+- Node.js 22+
+- npm
+- Git
+- A PostgreSQL database
 
 A Neon PostgreSQL database can be used for development.
 
@@ -417,25 +417,25 @@ http://localhost:3000
 
 Bloom & Petal uses JWT-based authentication with two primary roles:
 
-* `CUSTOMER`
-* `ADMIN`
+- `CUSTOMER`
+- `ADMIN`
 
 Customers can:
 
-* Register and log in
-* Manage their cart
-* Create orders
-* View their own orders
-* Cancel eligible orders
+- Register and log in
+- Manage their cart
+- Create orders
+- View their own orders
+- Cancel eligible orders
 
 Administrators can:
 
-* Manage products
-* Manage categories
-* Manage inventory
-* Manage orders
-* Update order statuses
-* View dashboard metrics
+- Manage products
+- Manage categories
+- Manage inventory
+- Manage orders
+- Update order statuses
+- View dashboard metrics
 
 Administrative authorization is enforced on the backend rather than relying solely on frontend route protection.
 
@@ -531,20 +531,20 @@ Payment confirmation is handled through Stripe webhooks before the corresponding
 
 The backend includes several layers of protection:
 
-* JWT authentication
-* Role-based authorization
-* Password hashing with bcrypt
-* Request validation
-* Rate limiting
-* Helmet security headers
-* Configurable CORS
-* Protected order ownership
-* Server-side price validation
-* Server-side inventory validation
-* Atomic inventory updates
-* Validated order status transitions
-* Safe database exception handling
-* Environment-based secrets
+- JWT authentication
+- Role-based authorization
+- Password hashing with bcrypt
+- Request validation
+- Rate limiting
+- Helmet security headers
+- Configurable CORS
+- Protected order ownership
+- Server-side price validation
+- Server-side inventory validation
+- Atomic inventory updates
+- Validated order status transitions
+- Safe database exception handling
+- Environment-based secrets
 
 The frontend is treated as an untrusted client for business-critical operations.
 
@@ -670,26 +670,23 @@ Screenshots of the application will be added here.
 
 ### Customer Storefront
 
-<img width="1920" height="1080" alt="home" src="https://github.com/user-attachments/assets/a084ff57-486f-4470-a5cb-53f740b44e53" />
+![Bloom & Petal homepage](screenshots/home.png)
 
+![Bloom & Petal products](screenshots/products.png)
 
-<img width="1920" height="1080" alt="products" src="https://github.com/user-attachments/assets/569f22d5-81ad-4390-a5a8-d845731e2765" />
-
-<img width="1920" height="1080" alt="product-detail" src="https://github.com/user-attachments/assets/9441aad7-158c-4df2-9fab-cfc7aa82f0c8" />
-
+![Bloom & Petal products detail](screenshots/product-detail.png)
 
 ### Shopping & Orders
 
-<img width="1920" height="1080" alt="cart" src="https://github.com/user-attachments/assets/d7d36ac1-8461-4728-a4f0-47bcfb93bb76" />
+![Bloom & Petal cart](screenshots/cart.png)
 
-
-<img width="1920" height="1080" alt="order-track" src="https://github.com/user-attachments/assets/f8f41bc2-a6d3-4891-bfce-1e0caecace49" />
+![Bloom & Petal order-track](screenshots/order-track.png)
 
 ### Administration
 
-<img width="1920" height="1080" alt="admin-dash" src="https://github.com/user-attachments/assets/56a2f809-47d4-4114-beed-e9ef45c0ab1a" />
+![Bloom & Petal admin-dash](screenshots/admin-dash.png)
 
-<img width="1920" height="1080" alt="admin-order-detail" src="https://github.com/user-attachments/assets/4c871ca4-0056-4687-b896-05ccd6e71000" />
+![Bloom & Petal admin-order-detail](screenshots/admin-order-detail.png)
 
 ---
 
@@ -699,17 +696,17 @@ Bloom & Petal was built with a focus on backend correctness and realistic ecomme
 
 Some of the main engineering considerations include:
 
-* Separating frontend presentation from backend business logic
-* Validating prices and inventory on the server
-* Preventing customers from accessing other customers' orders
-* Handling payment confirmation through Stripe webhooks
-* Using database transactions for order processing
-* Performing atomic inventory updates
-* Enforcing role-based access control
-* Handling guest-to-authenticated cart merging
-* Protecting API endpoints with validation and rate limiting
-* Testing critical backend services
-* Running automated tests and builds through GitHub Actions
+- Separating frontend presentation from backend business logic
+- Validating prices and inventory on the server
+- Preventing customers from accessing other customers' orders
+- Handling payment confirmation through Stripe webhooks
+- Using database transactions for order processing
+- Performing atomic inventory updates
+- Enforcing role-based access control
+- Handling guest-to-authenticated cart merging
+- Protecting API endpoints with validation and rate limiting
+- Testing critical backend services
+- Running automated tests and builds through GitHub Actions
 
 ---
 
@@ -717,12 +714,12 @@ Some of the main engineering considerations include:
 
 Possible future improvements include:
 
-* Email notifications for order events
-* Additional payment and refund workflows
-* Product archiving and improved product lifecycle management
-* Expanded automated test coverage
-* Additional customer account features
-* More advanced analytics
+- Email notifications for order events
+- Additional payment and refund workflows
+- Product archiving and improved product lifecycle management
+- Expanded automated test coverage
+- Additional customer account features
+- More advanced analytics
 
 These features are outside the current project scope and were intentionally left out to keep the core ecommerce workflow focused and stable.
 
