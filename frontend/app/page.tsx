@@ -7,19 +7,6 @@ import ProductCard from "../components/ProductCard";
 import RemoteImage from "../components/RemoteImage";
 import { api, imageFor, type Category, type Product } from "../lib/api";
 
-const categoryFallbacks: Record<string, string> = {
-  bouquets:
-    "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1200&q=85",
-  "indoor-plants":
-    "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1200&q=85",
-  "dried-flowers":
-    "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?auto=format&fit=crop&w=1200&q=85",
-  sympathy:
-    "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=85",
-  birthday:
-    "https://images.unsplash.com/photo-1455659817273-f96807779a8a?auto=format&fit=crop&w=1200&q=85",
-};
-
 const momentLinks = [
   {
     label: "Birthday",
@@ -64,8 +51,10 @@ export default function Home() {
   }, []);
   const collections = useMemo(
     () =>
-      categories.filter((category) =>
-        ["bouquets", "indoor-plants", "dried-flowers"].includes(category.slug),
+      categories.filter(
+        (category) =>
+          ["bouquets", "blooms", "indoor-plants"].includes(category.slug) &&
+          (category._count?.products ?? 0) > 0,
       ),
     [categories],
   );
@@ -77,7 +66,7 @@ export default function Home() {
       <section className="relative overflow-hidden bg-[var(--background)]">
         <div className="relative min-h-[500px] lg:min-h-[620px]">
           <RemoteImage
-            src="https://images.unsplash.com/photo-1527061011665-3652c757a4d4?auto=format&fit=crop&w=1800&q=90"
+            src="https://res.cloudinary.com/vwhvfvjd/image/upload/f_auto,q_auto,w_1800/v1788798523/hero.jpg"
             alt="A field of delicate flowers"
             fill
             priority
@@ -90,20 +79,24 @@ export default function Home() {
               <p className="section-label">
                 Bloom &amp; Petal · Seasonal collection
               </p>
-              <h1 className="mx-auto mt-4 max-w-[18rem] font-sans text-4xl font-semibold leading-[1.06] tracking-[-0.04em] text-[var(--foreground)] sm:max-w-xl sm:text-6xl lg:mx-0 lg:mt-5 lg:text-7xl">
-                Let the gesture speak for itself.
+
+              <h1 className="mx-auto mt-4 max-w-[18rem] font-display text-5xl font-medium leading-[0.98] tracking-[-0.025em] text-[var(--foreground)] sm:max-w-xl sm:text-7xl lg:mx-0 lg:mt-5 lg:text-8xl">
+                Some feelings are better left in bloom.
               </h1>
+
               <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[var(--muted-foreground)] lg:mx-0 lg:mt-6">
-                Seasonal stems, easygoing plants, and thoughtful gifts for
-                sending something beautiful.
+                From quiet gestures to unforgettable moments, find something
+                beautiful to say what words sometimes cannot.
               </p>
+
               <div className="mt-7 flex flex-wrap justify-center gap-3 lg:mt-8 lg:justify-start">
                 <Link
                   href="/products"
                   className="inline-flex min-h-11 items-center gap-3 rounded-[0.5rem_0.85rem_0.5rem_0.35rem] bg-[var(--primary)] px-6 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--primary-dark)] focus-visible:ring-2"
                 >
-                  Shop flowers <ArrowRight size={16} />
+                  Shop the blooms <ArrowRight size={16} />
                 </Link>
+
                 <Link
                   href="/products?category=indoor-plants"
                   className="inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border border-[var(--primary)] bg-[rgb(250_247_242_/_0.82)] px-6 text-xs font-bold uppercase tracking-[0.14em] text-[var(--primary)] transition hover:bg-[var(--background)]"
@@ -148,11 +141,7 @@ export default function Home() {
                 >
                   <div className="relative aspect-[1.15]">
                     <RemoteImage
-                      src={
-                        product
-                          ? imageFor(product)
-                          : categoryFallbacks[category.slug]
-                      }
+                      src={imageFor(product!)}
                       alt={category.name}
                       fill
                       sizes="(min-width: 768px) 33vw, 100vw"

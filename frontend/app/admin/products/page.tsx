@@ -173,15 +173,18 @@ export default function AdminProductsPage() {
                         <Button
                           variant="ghost"
                           aria-label={`Edit ${product.name}`}
+                          className="rounded-md border border-[var(--border)] bg-white transition-colors hover:border-[var(--primary)] hover:bg-[var(--secondary)] hover:text-[var(--primary)]"
                         >
                           <Edit3 size={16} />
                         </Button>
                       </Link>
+
                       <Button
                         variant="ghost"
                         disabled={deleting === product.id}
                         onClick={() => setPendingDelete(product)}
                         aria-label={`Delete ${product.name}`}
+                        className="rounded-md border border-[var(--border)] bg-white transition-colors hover:border-[var(--destructive)] hover:bg-[#fff0f0]"
                       >
                         <Trash2
                           size={16}
