@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,12 +15,22 @@ const orderInclude = {
       id: true,
       quantity: true,
       price: true,
-      product: { select: { id: true, name: true, images: true } },
+      product: {
+        select: {
+          id: true,
+          name: true,
+          images: true,
+          imageUrl: true,
+        },
+      },
     },
   },
 } as const;
 
-type AuthenticatedUser = { sub: string; role: 'CUSTOMER' | 'ADMIN' };
+type AuthenticatedUser = {
+  sub: string;
+  role: 'CUSTOMER' | 'ADMIN';
+};
 
 @Injectable()
 export class OrdersService {
@@ -29,31 +38,49 @@ export class OrdersService {
 
   async create(userId: string, dto: CreateOrderDto) {
     const deliveryDate = new Date(dto.deliveryDate);
+
     if (!Number.isFinite(deliveryDate.getTime())) {
       throw new BadRequestException('Invalid delivery date');
     }
+
     if (deliveryDate.getTime() < Date.now()) {
       throw new BadRequestException('Delivery date must not be in the past');
     }
 
     const productIds = dto.items.map((item) => item.productId);
+
     if (new Set(productIds).size !== productIds.length) {
       throw new BadRequestException('Each product may appear only once');
     }
 
     const order = await this.prisma.$transaction(async (transaction) => {
       const products = await transaction.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, name: true, price: true },
+        where: {
+          id: {
+            in: productIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+        },
       });
+
       const byId = new Map(products.map((product) => [product.id, product]));
+
       let totalAmount = new Prisma.Decimal(0);
+
       const items = dto.items.map((item) => {
         const product = byId.get(item.productId);
-        if (!product)
+
+        if (!product) {
           throw new NotFoundException(`Product ${item.productId} not found`);
+        }
+
         const lineTotal = product.price.mul(item.quantity);
         totalAmount = totalAmount.add(lineTotal);
+
         return {
           productId: product.id,
           quantity: item.quantity,
@@ -63,9 +90,19 @@ export class OrdersService {
 
       for (const item of items) {
         const updated = await transaction.product.updateMany({
-          where: { id: item.productId, stock: { gte: item.quantity } },
-          data: { stock: { decrement: item.quantity } },
+          where: {
+            id: item.productId,
+            stock: {
+              gte: item.quantity,
+            },
+          },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
         });
+
         if (updated.count !== 1) {
           throw new BadRequestException('Insufficient stock; please retry');
         }
@@ -78,38 +115,63 @@ export class OrdersService {
           deliveryAddress: dto.deliveryAddress.trim(),
           deliveryDate,
           totalAmount,
-          orderItems: { create: items },
+          orderItems: {
+            create: items,
+          },
         },
         include: orderInclude,
       });
     });
 
-    return { success: true, data: this.serializeOrder(order) };
+    return {
+      success: true,
+      data: this.serializeOrder(order),
+    };
   }
 
   async findForUser(user: AuthenticatedUser, query: OrderQueryDto) {
     const where: Prisma.OrderWhereInput = {
-      ...(user.role === 'CUSTOMER' && { userId: user.sub }),
-      ...(query.status && { status: query.status }),
+      ...(user.role === 'CUSTOMER' && {
+        userId: user.sub,
+      }),
+      ...(query.status && {
+        status: query.status,
+      }),
     };
+
     return this.findMany(where, query);
   }
 
   async findForAdmin(query: OrderQueryDto) {
-    return this.findMany(query.status ? { status: query.status } : {}, query);
+    return this.findMany(
+      query.status
+        ? {
+            status: query.status,
+          }
+        : {},
+      query,
+    );
   }
 
   async findOne(id: string, user: AuthenticatedUser) {
     const order = await this.prisma.order.findFirst({
-      where: { id, ...(user.role === 'CUSTOMER' && { userId: user.sub }) },
+      where: {
+        id,
+        ...(user.role === 'CUSTOMER' && {
+          userId: user.sub,
+        }),
+      },
       include: orderInclude,
     });
+
     if (!order) {
-      throw user.role === 'CUSTOMER'
-        ? new ForbiddenException('You cannot access this order')
-        : new NotFoundException('Order not found');
+      throw new NotFoundException('Order not found');
     }
-    return { success: true, data: this.serializeOrder(order) };
+
+    return {
+      success: true,
+      data: this.serializeOrder(order),
+    };
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
@@ -118,44 +180,76 @@ export class OrdersService {
         where: { id },
         select: {
           status: true,
-          orderItems: { select: { productId: true, quantity: true } },
+          orderItems: {
+            select: {
+              productId: true,
+              quantity: true,
+            },
+          },
         },
       });
-      if (!current) throw new NotFoundException('Order not found');
+
+      if (!current) {
+        throw new NotFoundException('Order not found');
+      }
+
       if (!this.isAllowedTransition(current.status, dto.status)) {
         throw new BadRequestException(
           `Cannot change order status from ${current.status} to ${dto.status}`,
         );
       }
+
       const updated = await transaction.order.updateMany({
-        where: { id, status: current.status },
-        data: { status: dto.status },
+        where: {
+          id,
+          status: current.status,
+        },
+        data: {
+          status: dto.status,
+        },
       });
+
       if (updated.count !== 1) {
         throw new BadRequestException('Order status changed; please retry');
       }
+
       if (dto.status === OrderStatus.CANCELLED) {
         for (const item of current.orderItems) {
           await transaction.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
+            where: {
+              id: item.productId,
+            },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
           });
         }
       }
+
       return transaction.order.findUniqueOrThrow({
-        where: { id },
+        where: {
+          id,
+        },
         include: orderInclude,
       });
     });
-    return { success: true, data: this.serializeOrder(order) };
+
+    return {
+      success: true,
+      data: this.serializeOrder(order),
+    };
   }
 
   private async findMany(where: Prisma.OrderWhereInput, query: OrderQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 12;
+
     const orderBy = {
       [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
     } as Prisma.OrderOrderByWithRelationInput;
+
     const [orders, total] = await this.prisma.$transaction([
       this.prisma.order.findMany({
         where,
@@ -164,8 +258,12 @@ export class OrdersService {
         take: limit,
         include: orderInclude,
       }),
-      this.prisma.order.count({ where }),
+
+      this.prisma.order.count({
+        where,
+      }),
     ]);
+
     return {
       success: true,
       data: {
@@ -183,7 +281,10 @@ export class OrdersService {
   private serializeOrder<
     T extends {
       totalAmount: Prisma.Decimal;
-      orderItems: Array<{ price: Prisma.Decimal; [key: string]: unknown }>;
+      orderItems: Array<{
+        price: Prisma.Decimal;
+        [key: string]: unknown;
+      }>;
     },
   >(order: T) {
     return {
@@ -197,13 +298,17 @@ export class OrdersService {
   }
 
   private isAllowedTransition(current: OrderStatus, next: OrderStatus) {
-    if (current === next) return true;
+    if (current === next) {
+      return true;
+    }
+
     const transitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
       PROCESSING: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
       DELIVERED: [],
       CANCELLED: [],
     };
+
     return transitions[current].includes(next);
   }
 }

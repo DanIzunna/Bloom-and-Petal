@@ -66,6 +66,7 @@ export type OrderItem = {
     id: string;
     name: string;
     images: string[];
+    imageUrl: string | null;
   };
 };
 

@@ -155,7 +155,11 @@ export default function OrdersPage() {
                           className="image-radius relative size-12 overflow-hidden border-2 border-white bg-[var(--secondary)] sm:size-14"
                         >
                           <RemoteImage
-                            src={item.product.images[0] || "/file.svg"}
+                            src={
+                              item.product.imageUrl ||
+                              item.product.images[0] ||
+                              "/file.svg"
+                            }
                             alt={item.product.name}
                             fill
                             sizes="56px"
